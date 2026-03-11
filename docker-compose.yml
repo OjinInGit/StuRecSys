@@ -1,0 +1,50 @@
+services:
+
+  app:
+    build: .
+    container_name: sturecsys_app
+    working_dir: /var/www
+    volumes:
+      - .:/var/www
+    networks:
+      - sturecsys
+
+  nginx:
+    image: nginx:latest
+    container_name: sturecsys_nginx
+    ports:
+      - "8000:80"
+    volumes:
+      - .:/var/www
+      - ./docker/nginx:/etc/nginx/conf.d
+    depends_on:
+      - app
+    networks:
+      - sturecsys
+
+  mysql:
+    image: mysql:8.0
+    container_name: sturecsys_mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: sturecsys
+      MYSQL_USER: sturecsys
+      MYSQL_PASSWORD: root
+    ports:
+      - "3307:3306"
+    networks:
+      - sturecsys
+
+  node:
+    image: node:22
+    container_name: sturecsys_node
+    working_dir: /var/www
+    volumes:
+      - .:/var/www
+    command: sh -c "npm install && npm run dev"
+    networks:
+      - sturecsys
+
+networks:
+  sturecsys:
