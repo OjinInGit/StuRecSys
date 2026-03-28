@@ -42,6 +42,15 @@ return [
         ],
     ],
 
+    'admin' => [
+        'driver' => 'sanctum',
+        'provider' => 'admins',
+    ],
+
+    'teacher' => [
+        'driver' => 'sanctum',
+        'provider' => 'teachers',
+    ],
     /*
     |--------------------------------------------------------------------------
     | User Providers
@@ -62,9 +71,18 @@ return [
     'providers' => [
         'users' => [
             'driver' => 'eloquent',
-            'model' => env('AUTH_MODEL', App\Models\User::class),
+            'model' => App\Models\User::class,
         ],
 
+        'admins' => [
+            'driver' => 'eloquent',
+            'model' => App\Models\Admin::class,
+        ],
+
+        'teachers' => [
+            'driver' => 'eloquent',
+            'model' => App\Models\Teacher::class,
+        ],
         // 'users' => [
         //     'driver' => 'database',
         //     'table' => 'users',

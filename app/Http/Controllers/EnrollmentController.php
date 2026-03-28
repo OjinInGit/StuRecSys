@@ -2,7 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
+use App\Http\Requests\Enrollment\StoreEnrollmentRequest;
+use App\Http\Requests\Enrollment\ConfirmEnrollmentRequest;
 use Illuminate\Support\Facades\DB;
 use App\Models\Student;
 use App\Models\Enrollment;
@@ -11,25 +12,8 @@ use App\Models\AcademicYear;
 
 class EnrollmentController extends Controller
 {
-    // -------------------------------------------------------
-    // ENROLL A STUDENT (Admin only)
-    // Creates the student profile and assigns a random section
-    // -------------------------------------------------------
-
-    public function store(Request $request)
+    public function store(StoreEnrollmentRequest $request)
     {
-        $request->validate([
-            'id_number'                => 'required|string|max:20|unique:students,id_number',
-            'surname'                  => 'required|string|max:100',
-            'given_name'               => 'required|string|max:100',
-            'middle_initial'           => 'nullable|string|max:5',
-            'birthdate'                => 'required|date',
-            'age'                      => 'required|integer|min:1|max:20',
-            'gender'                   => 'required|in:Male,Female',
-            'emergency_contact_number' => 'required|string|max:20',
-            'grade_level_id'           => 'required|integer|exists:grade_levels,id',
-        ]);
-
         $activeYear = AcademicYear::where('is_active', 1)->first();
 
         if (!$activeYear) {
@@ -38,7 +22,6 @@ class EnrollmentController extends Controller
             ], 422);
         }
 
-        // Find sections for the given grade level that still have capacity
         $availableSections = Section::where('grade_level_id', $request->grade_level_id)
             ->get()
             ->filter(function ($section) use ($activeYear) {
@@ -54,7 +37,6 @@ class EnrollmentController extends Controller
             ], 422);
         }
 
-        // Randomly assign from available sections
         $assignedSection = $availableSections->random();
 
         DB::beginTransaction();
@@ -101,10 +83,6 @@ class EnrollmentController extends Controller
         }
     }
 
-    // -------------------------------------------------------
-    // GET ALL ENROLLMENTS (Admin only)
-    // -------------------------------------------------------
-
     public function index()
     {
         $enrollments = Enrollment::with([
@@ -118,10 +96,6 @@ class EnrollmentController extends Controller
             'enrollments' => $enrollments,
         ], 200);
     }
-
-    // -------------------------------------------------------
-    // GET A SINGLE ENROLLMENT
-    // -------------------------------------------------------
 
     public function show($id)
     {
@@ -138,16 +112,8 @@ class EnrollmentController extends Controller
         ], 200);
     }
 
-    // -------------------------------------------------------
-    // CONFIRM GRADE AND SET PROMOTION/RETENTION (Admin only)
-    // -------------------------------------------------------
-
-    public function confirm(Request $request, $id)
+    public function confirm(ConfirmEnrollmentRequest $request, $id)
     {
-        $request->validate([
-            'status' => 'required|in:promoted,retained',
-        ]);
-
         $enrollment = Enrollment::findOrFail($id);
 
         if ($enrollment->is_confirmed) {

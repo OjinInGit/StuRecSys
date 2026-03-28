@@ -2,15 +2,11 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
+use App\Http\Requests\Student\UpdateStudentRequest;
 use App\Models\Student;
 
 class StudentController extends Controller
 {
-    // -------------------------------------------------------
-    // GET ALL STUDENTS
-    // -------------------------------------------------------
-
     public function index()
     {
         $students = Student::with([
@@ -22,10 +18,6 @@ class StudentController extends Controller
             'students' => $students,
         ], 200);
     }
-
-    // -------------------------------------------------------
-    // GET A SINGLE STUDENT
-    // -------------------------------------------------------
 
     public function show($id)
     {
@@ -40,34 +32,15 @@ class StudentController extends Controller
         ], 200);
     }
 
-    // -------------------------------------------------------
-    // UPDATE STUDENT PROFILE (Admin only)
-    // -------------------------------------------------------
-
-    public function update(Request $request, $id)
+    public function update(UpdateStudentRequest $request, $id)
     {
         $student = Student::findOrFail($id);
-
-        $request->validate([
-            'surname'                  => 'sometimes|string|max:100',
-            'given_name'               => 'sometimes|string|max:100',
-            'middle_initial'           => 'nullable|string|max:5',
-            'birthdate'                => 'sometimes|date',
-            'age'                      => 'sometimes|integer|min:1|max:20',
-            'gender'                   => 'sometimes|in:Male,Female',
-            'emergency_contact_number' => 'sometimes|string|max:20',
-        ]);
-
-        $student->update($request->all());
+        $student->update($request->validated());
 
         return response()->json([
             'message' => 'Student profile updated successfully.',
         ], 200);
     }
-
-    // -------------------------------------------------------
-    // DELETE A STUDENT (Admin only)
-    // -------------------------------------------------------
 
     public function destroy($id)
     {

@@ -2,23 +2,14 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
+use App\Http\Requests\ClassAdvisory\StoreClassAdvisoryRequest;
 use App\Models\ClassAdvisory;
 use App\Models\AcademicYear;
 
 class ClassAdvisoryController extends Controller
 {
-    // -------------------------------------------------------
-    // ASSIGN A TEACHER TO A SECTION (Admin only)
-    // -------------------------------------------------------
-
-    public function store(Request $request)
+    public function store(StoreClassAdvisoryRequest $request)
     {
-        $request->validate([
-            'teacher_id' => 'required|integer|exists:teachers,id',
-            'section_id' => 'required|integer|exists:sections,id',
-        ]);
-
         $activeYear = AcademicYear::where('is_active', 1)->first();
 
         if (!$activeYear) {
@@ -27,7 +18,6 @@ class ClassAdvisoryController extends Controller
             ], 422);
         }
 
-        // Check if section already has an adviser this year
         $sectionTaken = ClassAdvisory::where('section_id', $request->section_id)
             ->where('academic_year_id', $activeYear->id)
             ->exists();
@@ -38,7 +28,6 @@ class ClassAdvisoryController extends Controller
             ], 422);
         }
 
-        // Check if teacher is already assigned to another section this year
         $teacherTaken = ClassAdvisory::where('teacher_id', $request->teacher_id)
             ->where('academic_year_id', $activeYear->id)
             ->exists();
@@ -66,10 +55,6 @@ class ClassAdvisoryController extends Controller
         ], 201);
     }
 
-    // -------------------------------------------------------
-    // GET ALL CLASS ADVISORIES
-    // -------------------------------------------------------
-
     public function index()
     {
         $advisories = ClassAdvisory::with([
@@ -84,10 +69,6 @@ class ClassAdvisoryController extends Controller
         ], 200);
     }
 
-    // -------------------------------------------------------
-    // GET A SINGLE CLASS ADVISORY
-    // -------------------------------------------------------
-
     public function show($id)
     {
         $advisory = ClassAdvisory::with([
@@ -101,10 +82,6 @@ class ClassAdvisoryController extends Controller
             'advisory' => $advisory,
         ], 200);
     }
-
-    // -------------------------------------------------------
-    // UNASSIGN A TEACHER FROM A SECTION (Admin only)
-    // -------------------------------------------------------
 
     public function destroy($id)
     {

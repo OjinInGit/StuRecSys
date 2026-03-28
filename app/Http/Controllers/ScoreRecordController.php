@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\ScoreRecord\StoreScoreRecordRequest;
+use App\Http\Requests\ScoreRecord\UpdateScoreRecordRequest;
 use Illuminate\Http\Request;
 use App\Models\ScoreRecord;
 use App\Models\Enrollment;
@@ -9,37 +11,8 @@ use App\Models\GradeSummary;
 
 class ScoreRecordController extends Controller
 {
-    // -------------------------------------------------------
-    // RECORD A SCORE (Teacher only)
-    // -------------------------------------------------------
-
-    public function store(Request $request)
+    public function store(StoreScoreRecordRequest $request)
     {
-        $request->validate([
-            'enrollment_id'   => 'required|integer|exists:enrollments,id',
-            'subject_id'      => 'required|integer|exists:subjects,id',
-            'semester'        => 'required|integer|in:1,2',
-            'period'          => 'required|in:midterm,final',
-            'component_type'  => 'required|in:activity,quiz,exam',
-            'sequence_number' => [
-                'required',
-                'integer',
-                function ($attribute, $value, $fail) use ($request) {
-                    $limits = [
-                        'activity' => 6,
-                        'quiz'     => 3,
-                        'exam'     => 1,
-                    ];
-                    $max = $limits[$request->component_type] ?? 1;
-                    if ($value < 1 || $value > $max) {
-                        $fail("Sequence number for {$request->component_type} must be between 1 and {$max}.");
-                    }
-                },
-            ],
-            'score'           => 'required|numeric|min:0',
-        ]);
-
-        // Resolve max score based on component type
         $maxScores = [
             'activity' => 25,
             'quiz'     => 50,
@@ -47,13 +20,6 @@ class ScoreRecordController extends Controller
         ];
         $maxScore = $maxScores[$request->component_type];
 
-        if ($request->score > $maxScore) {
-            return response()->json([
-                'message' => "Score cannot exceed the maximum of {$maxScore} for {$request->component_type}.",
-            ], 422);
-        }
-
-        // Check if a score already exists for this exact entry
         $existing = ScoreRecord::where([
             'enrollment_id'   => $request->enrollment_id,
             'subject_id'      => $request->subject_id,
@@ -81,7 +47,6 @@ class ScoreRecordController extends Controller
             'recorded_by'     => $request->user()->id,
         ]);
 
-        // Automatically recompute grade summary after saving score
         $this->recomputeGradeSummary(
             $request->enrollment_id,
             $request->subject_id,
@@ -95,24 +60,15 @@ class ScoreRecordController extends Controller
         ], 201);
     }
 
-    // -------------------------------------------------------
-    // UPDATE AN EXISTING SCORE (Teacher only)
-    // -------------------------------------------------------
-
-    public function update(Request $request, $id)
+    public function update(UpdateScoreRecordRequest $request, $id)
     {
         $scoreRecord = ScoreRecord::findOrFail($id);
-
-        $request->validate([
-            'score' => 'required|numeric|min:0|max:' . $scoreRecord->max_score,
-        ]);
 
         $scoreRecord->update([
             'score'       => $request->score,
             'recorded_by' => $request->user()->id,
         ]);
 
-        // Recompute grade summary after update
         $this->recomputeGradeSummary(
             $scoreRecord->enrollment_id,
             $scoreRecord->subject_id,
@@ -126,18 +82,8 @@ class ScoreRecordController extends Controller
         ], 200);
     }
 
-    // -------------------------------------------------------
-    // GET ALL SCORES FOR AN ENROLLMENT (per subject per semester)
-    // -------------------------------------------------------
-
     public function index(Request $request)
     {
-        $request->validate([
-            'enrollment_id' => 'required|integer|exists:enrollments,id',
-            'subject_id'    => 'required|integer|exists:subjects,id',
-            'semester'      => 'required|integer|in:1,2',
-        ]);
-
         $scores = ScoreRecord::where([
             'enrollment_id' => $request->enrollment_id,
             'subject_id'    => $request->subject_id,
@@ -164,10 +110,6 @@ class ScoreRecordController extends Controller
         ], 200);
     }
 
-    // -------------------------------------------------------
-    // INTERNAL: Recompute grade summary after score changes
-    // -------------------------------------------------------
-
     private function recomputeGradeSummary(
         int $enrollmentId,
         int $subjectId,
@@ -181,7 +123,6 @@ class ScoreRecordController extends Controller
 
         $summary->computeGrades();
 
-        // Recompute overall GPA on the enrollment
         $enrollment = Enrollment::findOrFail($enrollmentId);
         $enrollment->computeGpa();
     }

@@ -2,19 +2,16 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\GradeSummary\ShowGradeSummaryRequest;
 use Illuminate\Http\Request;
 use App\Models\GradeSummary;
 
 class GradeSummaryController extends Controller
 {
-    // -------------------------------------------------------
-    // GET GRADE SUMMARIES FOR AN ENROLLMENT
-    // -------------------------------------------------------
-
     public function index(Request $request)
     {
         $request->validate([
-            'enrollment_id' => 'required|integer|exists:enrollments,id',
+            'enrollment_id' => ['required', 'integer', 'exists:enrollments,id'],
         ]);
 
         $summaries = GradeSummary::where('enrollment_id', $request->enrollment_id)
@@ -36,18 +33,8 @@ class GradeSummaryController extends Controller
         ], 200);
     }
 
-    // -------------------------------------------------------
-    // GET GRADE SUMMARY FOR A SPECIFIC SUBJECT AND SEMESTER
-    // -------------------------------------------------------
-
-    public function show(Request $request)
+    public function show(ShowGradeSummaryRequest $request)
     {
-        $request->validate([
-            'enrollment_id' => 'required|integer|exists:enrollments,id',
-            'subject_id'    => 'required|integer|exists:subjects,id',
-            'semester'      => 'required|integer|in:1,2',
-        ]);
-
         $summary = GradeSummary::where([
             'enrollment_id' => $request->enrollment_id,
             'subject_id'    => $request->subject_id,
