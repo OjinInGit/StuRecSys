@@ -4,17 +4,20 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\Admin\RegisterAdminRequest;
 use App\Http\Requests\Admin\UpdateAdminRequest;
+use App\Traits\ApiResponseTrait;
 use Illuminate\Support\Facades\Hash;
 use App\Models\Admin;
-
+use App\Constants\GradingConstants;
 class AdminController extends Controller
 {
+    use ApiResponseTrait;
+
     public function register(RegisterAdminRequest $request)
     {
-        if (Admin::count() >= 6) {
-            return response()->json([
-                'message' => 'Maximum number of admin accounts (6) has been reached.',
-            ], 403);
+        if (Admin::count() >= GradingConstants::MAX_ADMIN_ACCOUNTS) {
+            return $this->forbiddenResponse(
+                'Maximum number of admin accounts (' . GradingConstants::MAX_ADMIN_ACCOUNTS . ') has been reached.'
+            );
         }
 
         $admin = Admin::create([
@@ -28,15 +31,12 @@ class AdminController extends Controller
             'password'       => Hash::make($request->password),
         ]);
 
-        return response()->json([
-            'message' => 'Admin account created successfully.',
-            'admin'   => [
-                'id'        => $admin->id,
-                'full_name' => $admin->full_name,
-                'username'  => $admin->username,
-                'email'     => $admin->email,
-            ],
-        ], 201);
+        return $this->createdResponse([
+            'id'        => $admin->id,
+            'full_name' => $admin->full_name,
+            'username'  => $admin->username,
+            'email'     => $admin->email,
+        ], 'Admin account created successfully.');
     }
 
     public function index()
@@ -47,9 +47,7 @@ class AdminController extends Controller
             'created_at'
         )->get();
 
-        return response()->json([
-            'admins' => $admins,
-        ], 200);
+        return $this->successResponse($admins, 'Admins retrieved successfully.');
     }
 
     public function show($id)
@@ -60,9 +58,7 @@ class AdminController extends Controller
             'created_at'
         )->findOrFail($id);
 
-        return response()->json([
-            'admin' => $admin,
-        ], 200);
+        return $this->successResponse($admin, 'Admin retrieved successfully.');
     }
 
     public function update(UpdateAdminRequest $request, $id)
@@ -77,8 +73,6 @@ class AdminController extends Controller
 
         $admin->update($data);
 
-        return response()->json([
-            'message' => 'Admin profile updated successfully.',
-        ], 200);
+        return $this->successResponse(null, 'Admin profile updated successfully.');
     }
 }

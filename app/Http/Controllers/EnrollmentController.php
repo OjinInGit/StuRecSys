@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\Enrollment\StoreEnrollmentRequest;
 use App\Http\Requests\Enrollment\ConfirmEnrollmentRequest;
+use App\Traits\ApiResponseTrait;
 use Illuminate\Support\Facades\DB;
 use App\Models\Student;
 use App\Models\Enrollment;
@@ -12,14 +13,16 @@ use App\Models\AcademicYear;
 
 class EnrollmentController extends Controller
 {
+    use ApiResponseTrait;
+
     public function store(StoreEnrollmentRequest $request)
     {
         $activeYear = AcademicYear::where('is_active', 1)->first();
 
         if (!$activeYear) {
-            return response()->json([
-                'message' => 'No active academic year found. Please configure one first.',
-            ], 422);
+            return $this->validationErrorResponse(
+                'No active academic year found. Please configure one first.'
+            );
         }
 
         $availableSections = Section::where('grade_level_id', $request->grade_level_id)
@@ -32,9 +35,9 @@ class EnrollmentController extends Controller
             });
 
         if ($availableSections->isEmpty()) {
-            return response()->json([
-                'message' => 'All sections for this grade level are at full capacity.',
-            ], 422);
+            return $this->validationErrorResponse(
+                'All sections for this grade level are at full capacity.'
+            );
         }
 
         $assignedSection = $availableSections->random();
@@ -63,23 +66,24 @@ class EnrollmentController extends Controller
 
             DB::commit();
 
-            return response()->json([
-                'message'    => 'Student enrolled successfully.',
+            return $this->createdResponse([
                 'student'    => $student,
                 'enrollment' => [
                     'id'            => $enrollment->id,
                     'section'       => $assignedSection->name,
                     'grade_level'   => $assignedSection->gradeLevel->level,
-                    'academic_year' => $activeYear->year_start . '–' . $activeYear->year_end,
+                    'academic_year' => $activeYear->year_start
+                                        . '–'
+                                        . $activeYear->year_end,
                 ],
-            ], 201);
+            ], 'Student enrolled successfully.');
 
         } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json([
-                'message' => 'Enrollment failed. Please try again.',
-                'error'   => $e->getMessage(),
-            ], 500);
+            return $this->serverErrorResponse(
+                'Enrollment failed. Please try again.',
+                $e->getMessage()
+            );
         }
     }
 
@@ -92,9 +96,7 @@ class EnrollmentController extends Controller
             'enrolledBy',
         ])->get();
 
-        return response()->json([
-            'enrollments' => $enrollments,
-        ], 200);
+        return $this->successResponse($enrollments, 'Enrollments retrieved successfully.');
     }
 
     public function show($id)
@@ -107,9 +109,7 @@ class EnrollmentController extends Controller
             'scoreRecords.subject',
         ])->findOrFail($id);
 
-        return response()->json([
-            'enrollment' => $enrollment,
-        ], 200);
+        return $this->successResponse($enrollment, 'Enrollment retrieved successfully.');
     }
 
     public function confirm(ConfirmEnrollmentRequest $request, $id)
@@ -117,15 +117,15 @@ class EnrollmentController extends Controller
         $enrollment = Enrollment::findOrFail($id);
 
         if ($enrollment->is_confirmed) {
-            return response()->json([
-                'message' => 'This enrollment has already been confirmed.',
-            ], 422);
+            return $this->validationErrorResponse(
+                'This enrollment has already been confirmed.'
+            );
         }
 
         if (is_null($enrollment->gpa)) {
-            return response()->json([
-                'message' => 'GPA has not been computed yet. Ensure all grades are recorded.',
-            ], 422);
+            return $this->validationErrorResponse(
+                'GPA has not been computed yet. Ensure all grades are recorded.'
+            );
         }
 
         $enrollment->update([
@@ -135,9 +135,9 @@ class EnrollmentController extends Controller
             'confirmed_at' => now(),
         ]);
 
-        return response()->json([
-            'message'    => 'Enrollment confirmed. Student marked as ' . $request->status . '.',
-            'enrollment' => $enrollment,
-        ], 200);
+        return $this->successResponse(
+            $enrollment,
+            'Enrollment confirmed. Student marked as ' . $request->status . '.'
+        );
     }
 }

@@ -4,11 +4,14 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\Teacher\StoreTeacherRequest;
 use App\Http\Requests\Teacher\UpdateTeacherRequest;
+use App\Traits\ApiResponseTrait;
 use Illuminate\Support\Facades\Hash;
 use App\Models\Teacher;
 
 class TeacherController extends Controller
 {
+    use ApiResponseTrait;
+
     public function store(StoreTeacherRequest $request)
     {
         $teacher = Teacher::create([
@@ -21,15 +24,12 @@ class TeacherController extends Controller
             'password'       => Hash::make($request->password),
         ]);
 
-        return response()->json([
-            'message' => 'Teacher account created successfully.',
-            'teacher' => [
-                'id'        => $teacher->id,
-                'full_name' => $teacher->full_name,
-                'username'  => $teacher->username,
-                'email'     => $teacher->email,
-            ],
-        ], 201);
+        return $this->createdResponse([
+            'id'        => $teacher->id,
+            'full_name' => $teacher->full_name,
+            'username'  => $teacher->username,
+            'email'     => $teacher->email,
+        ], 'Teacher account created successfully.');
     }
 
     public function index()
@@ -44,9 +44,7 @@ class TeacherController extends Controller
         ])
         ->get();
 
-        return response()->json([
-            'teachers' => $teachers,
-        ], 200);
+        return $this->successResponse($teachers, 'Teachers retrieved successfully.');
     }
 
     public function show($id)
@@ -61,9 +59,7 @@ class TeacherController extends Controller
         ])
         ->findOrFail($id);
 
-        return response()->json([
-            'teacher' => $teacher,
-        ], 200);
+        return $this->successResponse($teacher, 'Teacher retrieved successfully.');
     }
 
     public function update(UpdateTeacherRequest $request, $id)
@@ -78,9 +74,7 @@ class TeacherController extends Controller
 
         $teacher->update($data);
 
-        return response()->json([
-            'message' => 'Teacher profile updated successfully.',
-        ], 200);
+        return $this->successResponse(null, 'Teacher profile updated successfully.');
     }
 
     public function destroy($id)
@@ -88,8 +82,6 @@ class TeacherController extends Controller
         $teacher = Teacher::findOrFail($id);
         $teacher->delete();
 
-        return response()->json([
-            'message' => 'Teacher account deleted successfully.',
-        ], 200);
+        return $this->successResponse(null, 'Teacher account deleted successfully.');
     }
 }

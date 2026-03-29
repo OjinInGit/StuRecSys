@@ -3,6 +3,7 @@
 namespace App\Http\Requests\ScoreRecord;
 
 use Illuminate\Foundation\Http\FormRequest;
+use App\Constants\GradingConstants;
 
 class StoreScoreRecordRequest extends FormRequest
 {
@@ -30,7 +31,7 @@ class StoreScoreRecordRequest extends FormRequest
                         'exam'     => 1,
                     ];
                     $type = $this->input('component_type');
-                    $max  = $limits[$type] ?? 1;
+                    $max  = GradingConstants::sequenceLimit($type);
 
                     if ($value > $max) {
                         $fail("Sequence number for a {$type} must not exceed {$max}.");
@@ -48,7 +49,7 @@ class StoreScoreRecordRequest extends FormRequest
                         'exam'     => 100,
                     ];
                     $type     = $this->input('component_type');
-                    $maxScore = $maxScores[$type] ?? 100;
+                    $maxScore = GradingConstants::maxScore($type);
 
                     if ($value > $maxScore) {
                         $fail("Score for a {$type} must not exceed {$maxScore}.");

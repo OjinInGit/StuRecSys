@@ -3,11 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\GradeSummary\ShowGradeSummaryRequest;
+use App\Traits\ApiResponseTrait;
 use Illuminate\Http\Request;
 use App\Models\GradeSummary;
 
 class GradeSummaryController extends Controller
 {
+    use ApiResponseTrait;
+
     public function index(Request $request)
     {
         $request->validate([
@@ -28,9 +31,7 @@ class GradeSummaryController extends Controller
                 ];
             });
 
-        return response()->json([
-            'grade_summaries' => $summaries,
-        ], 200);
+        return $this->successResponse($summaries, 'Grade summaries retrieved successfully.');
     }
 
     public function show(ShowGradeSummaryRequest $request)
@@ -41,14 +42,12 @@ class GradeSummaryController extends Controller
             'semester'      => $request->semester,
         ])->with('subject')->firstOrFail();
 
-        return response()->json([
-            'grade_summary' => [
-                'subject'        => $summary->subject->name,
-                'semester'       => $summary->semester,
-                'midterm_grade'  => $summary->midterm_grade,
-                'finals_grade'   => $summary->finals_grade,
-                'semester_grade' => $summary->semester_grade,
-            ],
-        ], 200);
+        return $this->successResponse([
+            'subject'        => $summary->subject->name,
+            'semester'       => $summary->semester,
+            'midterm_grade'  => $summary->midterm_grade,
+            'finals_grade'   => $summary->finals_grade,
+            'semester_grade' => $summary->semester_grade,
+        ], 'Grade summary retrieved successfully.');
     }
 }

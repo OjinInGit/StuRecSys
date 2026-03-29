@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Constants\GradingConstants;
 
 class Enrollment extends Model
 {
@@ -86,15 +87,8 @@ class Enrollment extends Model
     }
 
     // Resolve letter grade from GPA
-    private function resolveGradeStatus(float $gpa): string
+        private function resolveGradeStatus(float $gpa): string
     {
-        return match (true) {
-            $gpa >= 95              => 'A',
-            $gpa >= 90              => 'B',
-            $gpa >= 85              => 'C',
-            $gpa >= 80              => 'D',
-            $gpa >= 75              => 'E',
-            default                 => 'F',
-        };
+        return GradingConstants::gradeStatus($gpa);
     }
 }

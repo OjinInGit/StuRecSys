@@ -3,19 +3,20 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\ClassAdvisory\StoreClassAdvisoryRequest;
+use App\Traits\ApiResponseTrait;
 use App\Models\ClassAdvisory;
 use App\Models\AcademicYear;
 
 class ClassAdvisoryController extends Controller
 {
+    use ApiResponseTrait;
+
     public function store(StoreClassAdvisoryRequest $request)
     {
         $activeYear = AcademicYear::where('is_active', 1)->first();
 
         if (!$activeYear) {
-            return response()->json([
-                'message' => 'No active academic year found.',
-            ], 422);
+            return $this->validationErrorResponse('No active academic year found.');
         }
 
         $sectionTaken = ClassAdvisory::where('section_id', $request->section_id)
@@ -23,9 +24,9 @@ class ClassAdvisoryController extends Controller
             ->exists();
 
         if ($sectionTaken) {
-            return response()->json([
-                'message' => 'This section already has a class adviser for the current academic year.',
-            ], 422);
+            return $this->validationErrorResponse(
+                'This section already has a class adviser for the current academic year.'
+            );
         }
 
         $teacherTaken = ClassAdvisory::where('teacher_id', $request->teacher_id)
@@ -33,9 +34,9 @@ class ClassAdvisoryController extends Controller
             ->exists();
 
         if ($teacherTaken) {
-            return response()->json([
-                'message' => 'This teacher is already assigned to a section for the current academic year.',
-            ], 422);
+            return $this->validationErrorResponse(
+                'This teacher is already assigned to a section for the current academic year.'
+            );
         }
 
         $advisory = ClassAdvisory::create([
@@ -45,14 +46,14 @@ class ClassAdvisoryController extends Controller
             'assigned_by'      => $request->user()->id,
         ]);
 
-        return response()->json([
-            'message'  => 'Teacher assigned to section successfully.',
-            'advisory' => $advisory->load([
+        return $this->createdResponse(
+            $advisory->load([
                 'teacher',
                 'section.gradeLevel',
                 'academicYear',
             ]),
-        ], 201);
+            'Teacher assigned to section successfully.'
+        );
     }
 
     public function index()
@@ -64,9 +65,7 @@ class ClassAdvisoryController extends Controller
             'assignedBy',
         ])->get();
 
-        return response()->json([
-            'advisories' => $advisories,
-        ], 200);
+        return $this->successResponse($advisories, 'Class advisories retrieved successfully.');
     }
 
     public function show($id)
@@ -78,9 +77,7 @@ class ClassAdvisoryController extends Controller
             'assignedBy',
         ])->findOrFail($id);
 
-        return response()->json([
-            'advisory' => $advisory,
-        ], 200);
+        return $this->successResponse($advisory, 'Class advisory retrieved successfully.');
     }
 
     public function destroy($id)
@@ -88,8 +85,6 @@ class ClassAdvisoryController extends Controller
         $advisory = ClassAdvisory::findOrFail($id);
         $advisory->delete();
 
-        return response()->json([
-            'message' => 'Class advisory removed successfully.',
-        ], 200);
+        return $this->successResponse(null, 'Class advisory removed successfully.');
     }
 }

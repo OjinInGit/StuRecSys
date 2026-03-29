@@ -19,6 +19,29 @@ return Application::configure(basePath: dirname(__DIR__))
 
         //
     })
-    ->withExceptions(function (Exceptions $exceptions): void {
-        //
-    })->create();
+    ->withExceptions(function (Exceptions $exceptions) {
+
+    //Unauthenticated (no token)
+    $exceptions->render(function (
+        \Illuminate\Auth\AuthenticationException $e,
+        \Illuminate\Http\Request $request
+    ) {
+        if ($request->expectsJson() || $request->is('api/*')) {
+            return response()->json([
+                'message' => 'Unauthenticated. Please log in.',
+            ], 401);
+        }
+    });
+
+    // Unauthorized (wrong role)
+    $exceptions->render(function (
+        \Illuminate\Auth\Access\AuthorizationException $e,
+        \Illuminate\Http\Request $request
+    ) {
+        if ($request->expectsJson() || $request->is('api/*')) {
+            return response()->json([
+                'message' => 'Unauthorized. You do not have permission to perform this action.',
+            ], 403);
+        }
+    });
+})->create();

@@ -4,21 +4,20 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\ScoreRecord\StoreScoreRecordRequest;
 use App\Http\Requests\ScoreRecord\UpdateScoreRecordRequest;
+use App\Traits\ApiResponseTrait;
 use Illuminate\Http\Request;
 use App\Models\ScoreRecord;
 use App\Models\Enrollment;
 use App\Models\GradeSummary;
+use App\Constants\GradingConstants;
 
 class ScoreRecordController extends Controller
 {
+    use ApiResponseTrait;
+
     public function store(StoreScoreRecordRequest $request)
     {
-        $maxScores = [
-            'activity' => 25,
-            'quiz'     => 50,
-            'exam'     => 100,
-        ];
-        $maxScore = $maxScores[$request->component_type];
+        $maxScore = GradingConstants::maxScore($request->component_type);
 
         $existing = ScoreRecord::where([
             'enrollment_id'   => $request->enrollment_id,
@@ -30,9 +29,9 @@ class ScoreRecordController extends Controller
         ])->first();
 
         if ($existing) {
-            return response()->json([
-                'message' => 'A score for this entry already exists. Use the update endpoint to modify it.',
-            ], 422);
+            return $this->validationErrorResponse(
+                'A score for this entry already exists. Use the update endpoint to modify it.'
+            );
         }
 
         $scoreRecord = ScoreRecord::create([
@@ -53,11 +52,10 @@ class ScoreRecordController extends Controller
             $request->semester
         );
 
-        return response()->json([
-            'message'      => 'Score recorded successfully.',
+        return $this->createdResponse([
             'score_record' => $scoreRecord,
             'percentile'   => $scoreRecord->percentile . '%',
-        ], 201);
+        ], 'Score recorded successfully.');
     }
 
     public function update(UpdateScoreRecordRequest $request, $id)
@@ -75,11 +73,10 @@ class ScoreRecordController extends Controller
             $scoreRecord->semester
         );
 
-        return response()->json([
-            'message'      => 'Score updated successfully.',
+        return $this->successResponse([
             'score_record' => $scoreRecord,
             'percentile'   => $scoreRecord->percentile . '%',
-        ], 200);
+        ], 'Score updated successfully.');
     }
 
     public function index(Request $request)
@@ -105,9 +102,7 @@ class ScoreRecordController extends Controller
             ];
         });
 
-        return response()->json([
-            'scores' => $scores,
-        ], 200);
+        return $this->successResponse($scores, 'Score records retrieved successfully.');
     }
 
     private function recomputeGradeSummary(
